@@ -1,0 +1,4 @@
+#!/bin/bash
+cd {{ project_dir }}
+VENV=$(poetry env info -p)
+$VENV/bin/gunicorn config.wsgi --bind localhost:{{ port }}

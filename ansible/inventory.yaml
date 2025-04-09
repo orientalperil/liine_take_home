@@ -1,0 +1,20 @@
+ungrouped:
+  hosts:
+    thatdomainistaken.com:
+      ansible_user: root
+      ansible_ssh_private_key_file: ~/.ssh/id_rsa
+  vars:
+    repo_url: git@github.com:orientalperil/liine_take_home.git
+    repo: liine_take_home
+    repo_dir: "{{ home_dir }}/{{ repo }}"
+    project_dir: "{{ home_dir }}/{{ repo }}/"
+    home_dir: /root
+    vars_file: ~/repos/production_deployments/liine_take_home/vars.yaml
+    env_file: ~/repos/production_deployments/liine_take_home/.env
+    database: liine_take_home
+    database_user: liine_take_home
+    database_password: liine_take_home
+    DATABASE_URL: postgres://{{ database_user }}:{{ database_password }}@localhost/{{ database }}
+    DJANGO_SETTINGS_MODULE: config.settings.base
+    domain: liine_take_home.thatdomainistaken.com
+    supervisor_group: liine_take_home

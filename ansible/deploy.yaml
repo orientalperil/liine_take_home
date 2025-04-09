@@ -1,0 +1,208 @@
+- hosts: all
+  environment:
+    DJANGO_SETTINGS_MODULE: "{{ DJANGO_SETTINGS_MODULE }}"
+    DATABASE_URL: "{{ DATABASE_URL }}"
+  tasks:
+    - name: Ping
+      ansible.builtin.ping:
+
+    - name: Update apt
+      ansible.builtin.apt:
+        update_cache: true
+
+    - name: Load vars
+      ansible.builtin.include_vars:
+        file: "{{ vars_file }}"
+
+    - name: Install basic stuff
+      ansible.builtin.apt:
+        state: present
+        name:
+          - git
+          - curl
+          - build-essential
+          - supervisor
+
+    - name: Install python
+      ansible.builtin.apt:
+        state: present
+        name:
+          - python3
+          - python3-pip
+          - python3-dev
+
+    - name: Install database
+      ansible.builtin.apt:
+        state: present
+        name:
+          - postgresql
+          - postgresql-contrib
+          - libpq-dev
+          - python3-psycopg2
+
+    - name: Install letsencrypt
+      ansible.builtin.apt:
+        state: present
+        name:
+          - nginx
+          - certbot
+          - python3-certbot-nginx
+
+    - name: Install tools
+      ansible.builtin.apt:
+        state: present
+        name:
+          - tmux
+          - emacs
+          - pv
+          - htop
+
+    - name: Install poetry
+      ansible.builtin.pip:
+        name: poetry
+
+    - name: Create database
+      become: true
+      become_user: postgres
+      community.postgresql.postgresql_db:
+        name: "{{ database }}"
+      tags:
+        - database
+
+    - name: Create database user
+      become: true
+      become_user: postgres
+      community.postgresql.postgresql_user:
+        name: "{{ database_user }}"
+        password: "{{ database_password }}"
+      tags:
+        - database
+
+    - name: Grant privileges on database to database user
+      become: true
+      become_user: postgres
+      community.postgresql.postgresql_privs:
+        database: postgres
+        privs: ALL
+        type: database
+        objs: "{{ database }}"
+        roles: "{{ database_user }}"
+      tags:
+        - database
+
+    - name: Grant privileges on database tables to database user
+      become: true
+      become_user: postgres
+      community.postgresql.postgresql_privs:
+        database: "{{ database }}"
+        privs: ALL
+        type: table
+        objs: ALL_IN_SCHEMA
+        schema: public
+        roles: "{{ database_user }}"
+      tags:
+        - database
+
+    - name: Git checkout
+      ansible.builtin.git:
+        repo: "{{ repo_url }}"
+        dest: "{{ repo_dir }}"
+
+    - name: Copy .env
+      ansible.builtin.copy:
+        src: "{{ env_file }}"
+        dest: "{{ project_dir }}/.env"
+
+    - name: Write to .env
+      ansible.builtin.blockinfile:
+        path: "{{ project_dir }}/.env"
+        block: |
+          DATABASE_URL={{ DATABASE_URL }}
+          ALLOWED_HOSTS=localhost,127.0.0.1,{{ domain }}
+          CORS_ALLOWED_ORIGINS=https://{{ frontend_domain }}
+
+    - name: Poetry install
+      ansible.builtin.shell: |
+        poetry install
+      register: command_output
+      args:
+        chdir: "{{ project_dir }}"
+
+    - ansible.builtin.debug:
+        var: command_output
+
+    - name: Django migrate
+      ansible.builtin.shell: |
+        VENV=$(poetry env info -p)
+        $VENV/bin/python manage.py migrate
+      register: command_output
+      args:
+        chdir: "{{ project_dir }}"
+
+    - ansible.builtin.debug:
+        var: command_output
+
+    - name: Django collectstatic
+      ansible.builtin.shell: |
+        VENV=$(poetry env info -p)
+        $VENV/bin/python manage.py collectstatic --noinput --clear
+      register: command_output
+      args:
+        chdir: "{{ project_dir }}"
+
+    - ansible.builtin.debug:
+        var: command_output
+
+    - name: Supervisor config file
+      ansible.builtin.template:
+        src: ../etc/supervisor/liine_take_home.conf.jinja
+        dest: /etc/supervisor/conf.d/liine_take_home.conf
+      tags:
+        - supervisor
+
+    - name: Supervisor shell scripts
+      ansible.builtin.template:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+      loop:
+        - { src: "../etc/supervisor/agent_start.sh.jinja", dest: "{{ project_dir }}/etc/supervisor/agent_start.sh" }
+        - { src: "../etc/supervisor/gunicorn_start.sh.jinja", dest: "{{ project_dir }}/etc/supervisor/gunicorn_start.sh" }
+      tags:
+        - supervisor
+
+    - name: Chmod supervisor shell scripts
+      ansible.builtin.file:
+        dest: "{{ item }}"
+        mode: +x
+      loop:
+        - "{{ project_dir }}/etc/supervisor/agent_start.sh"
+        - "{{ project_dir }}/etc/supervisor/gunicorn_start.sh"
+      tags:
+        - supervisor
+
+    - name: Restart supervisor
+      ansible.builtin.shell: |
+        supervisorctl reread
+        supervisorctl update
+        supervisorctl restart {{ supervisor_group }}:
+      register: command_output
+      tags:
+        - supervisor
+
+    - ansible.builtin.debug:
+        var: command_output
+      tags:
+        - supervisor
+
+    - name: Nginx config file
+      ansible.builtin.template:
+        src: ../etc/nginx/liine_take_home.jinja
+        dest: /etc/nginx/sites-enabled/liine_take_home
+
+    - name: Certbot
+      ansible.builtin.shell: |
+        certbot --nginx -n -d {{ domain }}
+      register: command_output
+
+    - ansible.builtin.debug:
+        var: command_output

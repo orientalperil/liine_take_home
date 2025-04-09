@@ -1,0 +1,7 @@
+[group:{{ supervisor_group }}]
+programs=liine_take_home_web
+
+[program:liine_take_home_web]
+command={{ project_dir }}/etc/supervisor/gunicorn_start.sh
+stopasgroup=true
+environment=DJANGO_SETTINGS_MODULE="{{ DJANGO_SETTINGS_MODULE }}"
