@@ -1,6 +1,7 @@
 import re
 
 import pandas
+import pendulum
 
 from restaurants.enums import DAYS_OF_WEEK
 
@@ -58,24 +59,17 @@ def parse_times(times):
         g[1] = '00'
     if g[4] is None:
         g[4] = '00'
-    if g[2] == 'am' and g[0] == '12':
-        g[0] = str(int(g[0]) - 12)
-    if g[2] == 'pm' and g[0] != '12':
-        g[0] = str(int(g[0]) + 12)
-    if g[5] == 'am' and g[3] == '12':
-        g[3] = str(int(g[3]) - 12)
-    if g[5] == 'pm' and g[3] != '12':
-        g[3] = str(int(g[3]) + 12)
-    ret = [g[0], g[1], g[3], g[4]]
-    ret = [int(x) for x in ret]
+
+    start = f'{g[0]}:{g[1]} {g[2]}'
+    start = pendulum.parse(start, strict=False).time()
+    end = f'{g[3]}:{g[4]} {g[5]}'
+    end = pendulum.parse(end, strict=False).time()
+
     next_day = False
-    if g[5] == 'am' and (ret[2] != 0 or ret[3] != 0):
-        a = ret[0] * 60 + ret[1]
-        b = ret[2] * 60 + ret[3]
-        if b < a:
-            next_day = True
-    ret.append(next_day)
-    return ret
+    if end <= start:
+        next_day = True
+
+    return start, end, next_day
 
 
 def parse_hours(hours_text):
@@ -90,19 +84,13 @@ def parse_hours(hours_text):
         days = parse_days(days)
 
         times = unit[i:].strip()
-        times = parse_times(times)
-        next_day = times.pop()
+        start, end, next_day = parse_times(times)
 
         for day in days:
             if next_day:
-                this_day = times[:]
-                this_day[2] = 0
-                this_day[3] = 0
-                next_day_times = times[:]
-                next_day_times[0] = 0
-                next_day_times[1] = 0
-                ret.append([day] + this_day)
-                ret.append([get_next_day(day)] + next_day_times)
+                zero = pendulum.Time(hour=0, minute=0)
+                ret.append([day, start, zero])
+                ret.append([get_next_day(day), zero, end])
             else:
-                ret.append([day] + times)
+                ret.append([day, start, end])
     return ret
