@@ -16,5 +16,5 @@ ungrouped:
     database_password: liine_take_home
     DATABASE_URL: postgres://{{ database_user }}:{{ database_password }}@localhost/{{ database }}
     DJANGO_SETTINGS_MODULE: config.settings.base
-    domain: liine_take_home.thatdomainistaken.com
+    domain: liine.thatdomainistaken.com
     supervisor_group: liine_take_home

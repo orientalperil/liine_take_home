@@ -165,7 +165,6 @@
         src: "{{ item.src }}"
         dest: "{{ item.dest }}"
       loop:
-        - { src: "../etc/supervisor/agent_start.sh.jinja", dest: "{{ project_dir }}/etc/supervisor/agent_start.sh" }
         - { src: "../etc/supervisor/gunicorn_start.sh.jinja", dest: "{{ project_dir }}/etc/supervisor/gunicorn_start.sh" }
       tags:
         - supervisor
@@ -175,7 +174,6 @@
         dest: "{{ item }}"
         mode: +x
       loop:
-        - "{{ project_dir }}/etc/supervisor/agent_start.sh"
         - "{{ project_dir }}/etc/supervisor/gunicorn_start.sh"
       tags:
         - supervisor
