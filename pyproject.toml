@@ -13,6 +13,7 @@ dependencies = [
     "pendulum (>=3.0.0,<4.0.0)",
     "django-filter (>=25.1,<26.0)",
     "gunicorn (>=23.0.0,<24.0.0)",
+    "whitenoise (>=6.9.0,<7.0.0)",
 ]
 
 [tool.poetry]
