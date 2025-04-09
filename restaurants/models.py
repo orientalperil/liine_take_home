@@ -32,7 +32,7 @@ class Restaurant(CreatedUpdatedModel):
 
 class Hours(CreatedUpdatedModel):
     restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE)
-    day_of_week = models.CharField(max_length=200, choices=DAYS_OF_WEEK)
+    day_of_week = models.CharField(max_length=200, choices=DAYS_OF_WEEK.choices)
     open_range = IntegerRangeField()
     datetime_range = DateTimeRangeField()
 

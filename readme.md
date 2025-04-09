@@ -8,6 +8,3 @@ Script to load csv into database:
 $ python manage.py runscript import_data
 
 Access restaurant API at /restaurants/.  An ISO formatted date time "time" query string parameter is required.
-
-docker
-ansible deploy
