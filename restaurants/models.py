@@ -22,7 +22,7 @@ class RestaurantQuerySet(models.QuerySet):
 
 
 class Restaurant(CreatedUpdatedModel):
-    name = models.CharField(max_length=200)
+    name = models.CharField(max_length=200, unique=True)
 
     objects = RestaurantQuerySet.as_manager()
 
