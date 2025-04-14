@@ -119,7 +119,6 @@
         block: |
           DATABASE_URL={{ DATABASE_URL }}
           ALLOWED_HOSTS=localhost,127.0.0.1,{{ domain }}
-          CORS_ALLOWED_ORIGINS=https://{{ frontend_domain }}
 
     - name: Poetry install
       ansible.builtin.shell: |
